@@ -1,0 +1,104 @@
+name: Build Kitty MCADDON
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Create folders
+        run: |
+          mkdir -p addon/Kitty_BP/scripts
+          mkdir -p addon/Kitty_RP
+
+      - name: Create Behavior Pack manifest
+        run: |
+          cat > addon/Kitty_BP/manifest.json <<'EOF'
+          {
+            "format_version": 2,
+            "header": {
+              "name": "Kitty Addon",
+              "description": "Kitty Addon for Minecraft Bedrock 1.26.44",
+              "uuid": "91f4b8d2-8e32-4c1e-a7f5-32b9d6e84110",
+              "version": [1, 0, 0],
+              "min_engine_version": [1, 26, 44]
+            },
+            "modules": [
+              {
+                "type": "data",
+                "uuid": "a7c51d29-6e44-4f90-b218-91e7d35c62aa",
+                "version": [1, 0, 0]
+              },
+              {
+                "type": "script",
+                "language": "javascript",
+                "uuid": "c3e98a71-5d26-4b83-9f14-67a2d8c451be",
+                "version": [1, 0, 0],
+                "entry": "scripts/main.js"
+              }
+            ],
+            "dependencies": [
+              {
+                "module_name": "@minecraft/server",
+                "version": "2.9.0"
+              }
+            ]
+          }
+          EOF
+
+      - name: Create Resource Pack manifest
+        run: |
+          cat > addon/Kitty_RP/manifest.json <<'EOF'
+          {
+            "format_version": 2,
+            "header": {
+              "name": "Kitty Addon Resources",
+              "description": "Kitty Addon Resource Pack",
+              "uuid": "d84a61f2-93b7-4c5e-a812-56e9f0372bd4",
+              "version": [1, 0, 0],
+              "min_engine_version": [1, 26, 44]
+            },
+            "modules": [
+              {
+                "type": "resources",
+                "uuid": "e61c92a5-47d8-4f30-b526-83a1d9c754eb",
+                "version": [1, 0, 0]
+              }
+            ]
+          }
+          EOF
+
+      - name: Create Minecraft Script
+        run: |
+          cat > addon/Kitty_BP/scripts/main.js <<'EOF'
+          import { world, system } from "@minecraft/server";
+
+          world.afterEvents.playerSpawn.subscribe((event) => {
+              const player = event.player;
+
+              player.sendMessage("§d§l🐱 KITTY ADDON");
+              player.sendMessage("§7Kitty Addon loaded successfully!");
+          });
+
+          system.runInterval(() => {
+              for (const player of world.getAllPlayers()) {
+                  player.onScreenDisplay.setActionBar(
+                      "§d🐱 KITTY MODE §f| §aACTIVE"
+                  );
+              }
+          }, 20);
+          EOF
+
+      - name: Build MCADDON
+        run: |
+          cd addon
+          zip -r ../KittyAddon.mcaddon Kitty_BP Kitty_RP
+
+      - name: Upload MCADDON
+        uses: actions/upload-artifact@v4
+        with:
+          name: KittyAddon-MCADDON
+          path: KittyAddon.mcaddon
